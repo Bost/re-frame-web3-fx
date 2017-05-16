@@ -1,7 +1,7 @@
 (ns madvas.re-frame.web3-fx
   (:require
     [cljs-web3.eth :as web3-eth]
-    [cljs.spec :as s]
+    [cljs.spec.alpha :as s]
     [re-frame.core :refer [reg-fx dispatch console reg-event-db reg-event-fx]]))
 
 (defn- blockchain-filter-opts? [x]
@@ -200,16 +200,20 @@
 (reg-fx
   :web3-fx.contract/state-fns
   (fn [raw-params]
+    (println ":web3-fx.contract/state-fns" "raw-params" raw-params)
     (let [{:keys [web3 db-path fns] :as params} (s/conform ::contract-state-fns raw-params)]
       (when (= :cljs.spec/invalid params)
         (console :error (s/explain-str ::contract-state-fns raw-params)))
-      (doseq [{:keys [f instance args transaction-opts on-success on-error on-transaction-receipt]}
+      (doseq [fun
+              #_{:keys [f instance args transaction-opts on-success on-error on-transaction-receipt]}
               (remove nil? fns)]
-        (apply web3-eth/contract-call
-               (concat [instance f]
-                       args
-                       [transaction-opts]
-                       [(create-state-fn-callback web3 db-path on-success on-error on-transaction-receipt)]))))))
+        (let [{:keys [f instance args transaction-opts on-success on-error on-transaction-receipt]} fun]
+          (println "fun" fun)
+          (apply web3-eth/contract-call
+                 (concat [instance f]
+                         args
+                         [transaction-opts]
+                         [(create-state-fn-callback web3 db-path on-success on-error on-transaction-receipt)])))))))
 
 (reg-fx
   :web3-fx.blockchain/fns
