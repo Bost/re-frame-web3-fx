@@ -15,7 +15,11 @@
 
 ;(enable-console-print!)
 
-(def w3 (web3/create-web3 "http://localhost:8549/"))
+(def w3
+  "Port-nr is the --rpcport from the command:
+  geth --dev --maxpeers 0 --port 30304 --shh --rpc --rpcport 8545 --keystore devnet --datadir $ethdir --minerthreads 1 --rpccorsdomain \"*\" --rpcapi \"eth,net,web3,personal,shh\"
+"
+  (web3/create-web3 "http://localhost:8545/"))
 (def gas-limit 4500000)
 (def ^:dynamic *contract* nil)
 (def contract-source
@@ -40,7 +44,7 @@
     function setB(uint _b) {
       b = _b;
     }
-    
+
     function setC(uint _c) {
       c = _c;
       onBChanged(b);
@@ -203,7 +207,9 @@
 (deftest basic
   (is (web3/connected? w3))
   (is (seq (web3-eth/accounts w3)))
-  ;(is (web3-personal/unlock-account w3 (second (web3-eth/accounts w3)) "m" 999999))
+  ;; (is (web3-personal/unlock-account w3 (second (web3-eth/accounts w3)) "m" 999999))
+  (re-frame.core/dispatch [:blockchain/unlock-account "0x4264e62a483eeb390fb60fe0f2ee48d44f9b0582" "m"])
+  (re-frame.core/dispatch [:contract/fetch-compiled-code [:contract/deploy-compiled-code]])
   (let [create-contract-ch (chan)
         balance-ch (chan)
         coinbase-ch (chan)
@@ -228,6 +234,7 @@
                    create-contract-ch]))
       (go
         (is (web3/address? (<! coinbase-ch)))
+        #_(println "(<! balance-ch)" (<! balance-ch))
         (is (.greaterThan (<! balance-ch) 0))
 
         (<! create-contract-ch)

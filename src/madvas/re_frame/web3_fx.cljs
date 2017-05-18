@@ -113,6 +113,7 @@
                                               event-filter-opts
                                               blockchain-filter-opts
                                               (contract-event-dispach-fn on-success on-error)))) {}))]
+        (console :log ":web3-fx.contract/events" "db-path" db-path "new-filters" new-filters)
         (dispatch [:web3-fx.contract/assoc-event-filters db-path new-filters])))))
 
 (reg-fx
@@ -200,15 +201,15 @@
 (reg-fx
   :web3-fx.contract/state-fns
   (fn [raw-params]
-    (println ":web3-fx.contract/state-fns" "raw-params" raw-params)
+    (console :log ":web3-fx.contract/state-fns" "raw-params" raw-params)
     (let [{:keys [web3 db-path fns] :as params} (s/conform ::contract-state-fns raw-params)]
       (when (= :cljs.spec/invalid params)
         (console :error (s/explain-str ::contract-state-fns raw-params)))
-      (doseq [fun
+      (doseq [state-fn
               #_{:keys [f instance args transaction-opts on-success on-error on-transaction-receipt]}
               (remove nil? fns)]
-        (let [{:keys [f instance args transaction-opts on-success on-error on-transaction-receipt]} fun]
-          (println "fun" fun)
+        (let [{:keys [f instance args transaction-opts on-success on-error on-transaction-receipt]} state-fn]
+          (console :log ":web3-fx.contract/state-fns" "state-fn" state-fn)
           (apply web3-eth/contract-call
                  (concat [instance f]
                          args
